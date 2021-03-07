@@ -4,11 +4,14 @@
 <body>
 <h1>Миссия Колонизация Марса</h1>
 <h2>И на Марсе будут яблони цвести!</h2>
+<a href="/reg" class="btn btn-warning">
+        {{ current_user.name }}
+        </a>
 {% set a_lst = lst %}
 <h1>Works log</h1>
 {% for item in a_lst %}
     <h2>Action # {{ loop.index }}</h2>
-    <table border="1">
+    <table border="1" bgcolor="#87CEEB">
         <tr>
             <th>Title of activity</th>
             <th>Team leader</th>
