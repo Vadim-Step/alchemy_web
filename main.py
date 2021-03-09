@@ -5,6 +5,8 @@ from werkzeug.utils import redirect
 from flask_login import LoginManager, current_user
 from data import db_session
 from data.db_session import create_session
+from data.dep_form import DepForm
+from data.departments import Departments
 from data.job import Jobs
 from data.job_form import JobForm
 from data.log_form import LoginForm
@@ -98,6 +100,7 @@ def reg():
         user.age = int(form.age.data)
         user.email = form.email.data
         user.hashed_password = form.password.data
+        login_user(user)
         db_sess.add(user)
         db_sess.commit()
         return redirect("/tab1")
@@ -112,7 +115,7 @@ def edit_news(id):
     if request.method == "GET":
         db_sess = db_session.create_session()
         jobs = db_sess.query(Jobs).filter(Jobs.id == id, (Jobs.team_leader == current_user.id) | (
-                    current_user.id == 1)).first()
+                current_user.id == 1)).first()
         if jobs:
             form.title.data = jobs.job
             form.tl_id.data = jobs.team_leader
@@ -154,6 +157,92 @@ def news_delete(id):
         abort(404)
 
     return redirect('/tab1')
+
+
+@app.route('/dep')
+def departments():
+    db_session.global_init('db/blogs.db')
+    db_sess = create_session()
+    lst = []
+    for dep in db_sess.query(Departments).all():
+        row = [dep.title]
+        for i in db_sess.query(User).all():
+            if i.id == dep.chief:
+                row.append(f'{i.name} {i.surname}')
+        row.append(dep.members)
+        row.append(dep.email)
+        row.append(dep.id)
+        row.append(dep.chief)
+        lst.append(row)
+    print(lst)
+    return render_template('departments.html', lst=lst)
+
+
+@app.route('/add_dep', methods=['GET', 'POST'])
+def add_dep():
+    form = DepForm()
+    if form.validate_on_submit():
+        db_session.global_init('db/blogs.db')
+        db_sess = db_session.create_session()
+        dep = Departments()
+        dep.title = form.title.data
+        dep.chief = int(form.chief.data)
+        dep.members = form.members.data
+        dep.email = form.email.data
+        db_sess.add(dep)
+        db_sess.commit()
+        return redirect("/dep")
+    return render_template('add_dep.html', title='Add a dep', form=form)
+
+
+@app.route('/dep/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_dep(id):
+    form = DepForm()
+    db_session.global_init('db/blogs.db')
+    if request.method == "GET":
+        db_sess = db_session.create_session()
+        deps = db_sess.query(Departments).filter(Departments.id == id,
+                                                 (Departments.chief == current_user.id) | (
+                                                         current_user.id == 1)).first()
+        if deps:
+            form.title.data = deps.title
+            form.chief.data = deps.chief
+            form.members.data = deps.members
+            form.email.data = deps.email
+        else:
+            abort(404)
+    if form.validate_on_submit():
+        db_sess = db_session.create_session()
+        deps = db_sess.query(Departments).filter(Departments.id == id).first()
+        if deps:
+            deps.title = form.title.data
+            deps.chief = form.chief.data
+            deps.members = form.members.data
+            deps.email = form.email.data
+            db_sess.commit()
+            return redirect('/dep')
+        else:
+            abort(404)
+    return render_template('add_dep.html', title='Edit a dep', form=form)
+
+
+@app.route('/dep_delete/<int:id>', methods=['GET', 'POST'])
+@login_required
+def dep_delete(id):
+    db_session.global_init('db/blogs.db')
+    db_sess = db_session.create_session()
+    if current_user.id == 1:
+        dep = db_sess.query(Departments).filter(Departments.id == id).first()
+    else:
+        dep = db_sess.query(Departments).filter(Departments.id == id,
+                                                Departments.chief == current_user.id).first()
+    if dep:
+        db_sess.delete(dep)
+        db_sess.commit()
+    else:
+        abort(404)
+    return redirect('/dep')
 
 
 if __name__ == '__main__':
