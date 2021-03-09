@@ -9,6 +9,11 @@
         </a>
 {% set a_lst = lst %}
 <h1>Works log</h1>
+{% if current_user.is_authenticated %}
+    <a href="/add_job" class="btn btn-info">
+                    Добавить
+                </a>
+{% endif %}
 {% for item in a_lst %}
     <h2>Action # {{ loop.index }}</h2>
     <table border="1" bgcolor="#87CEEB">
@@ -27,6 +32,16 @@
             <td>{{ item[4] }}</td>
         </tr>
     </table>
+    {% if current_user.is_authenticated and ((current_user.id == item[5]) or (current_user.id == 1)) %}
+        <div>
+            <a href="/tab1/{{ item[6] }}" class="btn btn-warning">
+                Изменить
+            </a>
+            <a href="/tab1_delete/{{ item[6] }}" class="btn btn-danger">
+                Удалить
+            </a>
+        </div>
+    {% endif %}
 {% endfor %}
 </body>
 {% endblock %}

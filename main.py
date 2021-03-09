@@ -1,7 +1,8 @@
-from flask import Flask, render_template
-from flask_login import login_user
+from flask import Flask, render_template, request
+from flask_login import login_user, login_required
+from werkzeug.exceptions import abort
 from werkzeug.utils import redirect
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from data import db_session
 from data.db_session import create_session
 from data.job import Jobs
@@ -19,6 +20,7 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
+    db_session.global_init('db/blogs.db')
     db_sess = db_session.create_session()
     return db_sess.query(User).get(user_id)
 
@@ -43,6 +45,8 @@ def table():
             row.append('Is finished')
         else:
             row.append('Is not finished')
+        row.append(job.team_leader)
+        row.append(job.id)
         lst.append(row)
     return render_template('index.html', lst=lst)
 
@@ -54,7 +58,6 @@ def login():
         db_session.global_init('db/blogs.db')
         db_sess = db_session.create_session()
         user = db_sess.query(User).filter(User.email == form.email.data).first()
-        print(form.password.data)
         if user and user.hashed_password == form.password.data:
             login_user(user, remember=form.remember_me.data)
             return redirect("/tab1")
@@ -79,7 +82,7 @@ def add_job():
         db_sess.add(job)
         db_sess.commit()
         return redirect("/tab1")
-    return render_template('job.html', form=form)
+    return render_template('job.html', title='Add a job', form=form)
 
 
 @app.route('/reg', methods=['GET', 'POST'])
@@ -99,6 +102,58 @@ def reg():
         db_sess.commit()
         return redirect("/tab1")
     return render_template('reg.html', form=form)
+
+
+@app.route('/tab1/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_news(id):
+    form = JobForm()
+    db_session.global_init('db/blogs.db')
+    if request.method == "GET":
+        db_sess = db_session.create_session()
+        jobs = db_sess.query(Jobs).filter(Jobs.id == id, (Jobs.team_leader == current_user.id) | (
+                    current_user.id == 1)).first()
+        if jobs:
+            form.title.data = jobs.job
+            form.tl_id.data = jobs.team_leader
+            form.work_size.data = jobs.work_size
+            form.collaborators.data = jobs.collaborators
+            form.finished.data = jobs.is_finished
+        else:
+            abort(404)
+    if form.validate_on_submit():
+        db_sess = db_session.create_session()
+        jobs = db_sess.query(Jobs).filter(Jobs.id == id
+                                          ).first()
+        if jobs:
+            jobs.title = form.title.data
+            jobs.team_leader = form.tl_id.data
+            jobs.work_size = form.work_size.data
+            jobs.collaborators = form.collaborators.data
+            jobs.is_finished = form.finished.data
+            db_sess.commit()
+            return redirect('/tab1')
+        else:
+            abort(404)
+    return render_template('job.html', title='Edit a job', form=form)
+
+
+@app.route('/tab1_delete/<int:id>', methods=['GET', 'POST'])
+@login_required
+def news_delete(id):
+    db_session.global_init('db/blogs.db')
+    db_sess = db_session.create_session()
+    if current_user.id == 1:
+        job = db_sess.query(Jobs).filter(Jobs.id == id).first()
+    else:
+        job = db_sess.query(Jobs).filter(Jobs.id == id, Jobs.team_leader == current_user.id).first()
+    if job:
+        db_sess.delete(job)
+        db_sess.commit()
+    else:
+        abort(404)
+
+    return redirect('/tab1')
 
 
 if __name__ == '__main__':
