@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request
+import requests
+from flask import Flask, render_template, request, make_response, jsonify, url_for
 from flask_login import login_user, login_required
 from werkzeug.exceptions import abort
 from werkzeug.utils import redirect
 from flask_login import LoginManager, current_user
-from data import db_session
 from data.db_session import create_session
 from data.dep_form import DepForm
 from data.departments import Departments
@@ -12,6 +12,7 @@ from data.job_form import JobForm
 from data.log_form import LoginForm
 from data.reg_form import RegForm
 from data.user import User
+from data import db_session, user_api
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
@@ -28,6 +29,8 @@ def load_user(user_id):
 
 
 def main():
+    db_session.global_init("db/blogs.db")
+    app.register_blueprint(user_api.blueprint)
     app.run()
 
 
@@ -174,7 +177,6 @@ def departments():
         row.append(dep.id)
         row.append(dep.chief)
         lst.append(row)
-    print(lst)
     return render_template('departments.html', lst=lst)
 
 
@@ -245,5 +247,30 @@ def dep_delete(id):
     return redirect('/dep')
 
 
+@app.route('/users_show/<int:user_id>', methods=['GET', 'POST'])
+def users_show(user_id):
+    try:
+        geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode={user_api.get_user(user_id).json['user'][0]['city']}&format=json"
+        response = requests.get(geocoder_request)
+        if response:
+            json_response = response.json()
+            toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            toponym_coodrinates = toponym["Point"]["pos"]
+            map_request = f"http://static-maps.yandex.ru/1.x/?ll={','.join(toponym_coodrinates.split())}&spn=0.1,0.1&l=map"
+            response = requests.get(map_request)
+            map_file = "static/map.png"
+            with open(map_file, "wb") as file:
+                file.write(response.content)
+            return render_template('nostalgy.html', name=user_api.get_user(user_id).json['user'][0]['name'],
+                                   image=url_for('static', filename='map.png'))
+    except Exception:
+        abort(404)
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': 'Not found'}), 404)
+
+
 if __name__ == '__main__':
-    app.run(port=8000, host='127.0.0.1')
+    main()
