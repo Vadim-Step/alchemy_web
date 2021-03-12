@@ -13,7 +13,7 @@ from data.job_form import JobForm
 from data.log_form import LoginForm
 from data.reg_form import RegForm
 from data.user import User
-from data import db_session, user_api, users_resource
+from data import db_session, user_api, users_resource, jobs_resource
 
 app = Flask(__name__)
 api = Api(app)
@@ -23,6 +23,8 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 api.add_resource(users_resource.UserListResource, '/api/v2/user')
 api.add_resource(users_resource.UserResource, '/api/v2/user/<int:news_id>')
+api.add_resource(jobs_resource.JobsListResource, '/api/v2/jobs')
+api.add_resource(jobs_resource.JobsResource, '/api/v2/jobs/<int:jobs_id>')
 
 
 @login_manager.user_loader
