@@ -1,6 +1,7 @@
 import requests
 from flask import Flask, render_template, request, make_response, jsonify, url_for
 from flask_login import login_user, login_required
+from flask_restful import Api
 from werkzeug.exceptions import abort
 from werkzeug.utils import redirect
 from flask_login import LoginManager, current_user
@@ -12,13 +13,16 @@ from data.job_form import JobForm
 from data.log_form import LoginForm
 from data.reg_form import RegForm
 from data.user import User
-from data import db_session, user_api
+from data import db_session, user_api, users_resource
 
 app = Flask(__name__)
+api = Api(app)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+api.add_resource(users_resource.UserListResource, '/api/v2/user')
+api.add_resource(users_resource.UserResource, '/api/v2/user/<int:news_id>')
 
 
 @login_manager.user_loader
