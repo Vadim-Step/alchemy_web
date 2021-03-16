@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 from flask_login import login_user, login_required
+from flask_restful import Api
 from werkzeug.exceptions import abort
 from werkzeug.utils import redirect
 from flask_login import LoginManager, current_user
@@ -12,12 +13,20 @@ from data.job_form import JobForm
 from data.log_form import LoginForm
 from data.reg_form import RegForm
 from data.user import User
+from data import db_session, jobs_api
+from data import users_resources
 
 app = Flask(__name__)
+api = Api(app)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+# для списка объектов
+api.add_resource(users_resources.UserListResource, '/api/v2/user')
+
+# для одного объекта
+api.add_resource(users_resources.UserResource, '/api/v2/user/<int:user_id>')
 
 
 @login_manager.user_loader
@@ -25,10 +34,6 @@ def load_user(user_id):
     db_session.global_init('db/blogs.db')
     db_sess = db_session.create_session()
     return db_sess.query(User).get(user_id)
-
-
-def main():
-    app.run()
 
 
 @app.route('/tab1')
@@ -245,5 +250,11 @@ def dep_delete(id):
     return redirect('/dep')
 
 
+def main():
+    db_session.global_init("db/blogs.db")
+    app.register_blueprint(jobs_api.blueprint)
+    app.run()
+
+
 if __name__ == '__main__':
-    app.run(port=8000, host='127.0.0.1')
+    main()
