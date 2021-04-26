@@ -40,7 +40,7 @@ def main():
     app.run()
 
 
-@app.route('/tab1')
+@app.route('/')
 def table():
     db_session.global_init('db/blogs.db')
     db_sess = create_session()
