@@ -26,6 +26,7 @@
             <th>Duration</th>
             <th>List of collaborators</th>
             <th>Is finished</th>
+            <th>Hazard category</th>
         </tr>
         <tr>
             <td>{{ item[0] }}</td>
@@ -33,6 +34,7 @@
             <td>{{ item[2] }}</td>
             <td>{{ item[3] }}</td>
             <td>{{ item[4] }}</td>
+            <td>{{ item[5] }}</td>
         </tr>
     </table>
     {% if current_user.is_authenticated and ((current_user.id == item[5]) or (current_user.id == 1)) %}

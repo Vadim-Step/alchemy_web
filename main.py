@@ -56,8 +56,10 @@ def table():
             row.append('Is finished')
         else:
             row.append('Is not finished')
+        row.append(job.hazard)
         row.append(job.team_leader)
         row.append(job.id)
+
         lst.append(row)
     return render_template('index.html', lst=lst)
 
@@ -88,6 +90,7 @@ def add_job():
         job.job = form.title.data
         job.team_leader = int(form.tl_id.data)
         job.work_size = int(form.work_size.data)
+        job.hazard = int(form.hazard.data)
         job.collaborators = form.collaborators.data
         job.is_finished = form.finished.data
         db_sess.add(job)
@@ -131,6 +134,7 @@ def edit_news(id):
             form.work_size.data = jobs.work_size
             form.collaborators.data = jobs.collaborators
             form.finished.data = jobs.is_finished
+            form.hazard.data = jobs.hazard
         else:
             abort(404)
     if form.validate_on_submit():
@@ -143,6 +147,7 @@ def edit_news(id):
             jobs.work_size = form.work_size.data
             jobs.collaborators = form.collaborators.data
             jobs.is_finished = form.finished.data
+            jobs.hazard = form.hazard.data
             db_sess.commit()
             return redirect('/tab1')
         else:
